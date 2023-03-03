@@ -3,18 +3,6 @@ Image and Video Processing project at Strathclyde that aims to classify potato l
 
 # Project initialisation
 
-## Clone project
-
-Je me rappelle plus si j'ai eu besoin d'installer git. Si besoin, j'imagine que vous trouverez votre bonheur ici: https://learn.microsoft.com/en-us/windows/wsl/tutorials/wsl-git
-
-Create a directory for the project
-```bash
-mkdir project_dir
-```
-Clone project
-```bash
-git clone https://github.com/JulienPriam/IVP_mildew_classification.git
-```
 ### WSL and Visual Studio Code installation
 
 In a Windows powershell, run
@@ -40,6 +28,25 @@ To add wget (to retrieve content from web servers) and ca-certificates (to allow
 ```bash
 sudo apt-get install wget ca-certificates
 ```
+
+## Clone project
+
+Ouvrir un powershell WSL à partir d'un powershell windows
+
+```bash
+wsl
+```
+
+Je me rappelle plus si j'ai eu besoin d'installer git sur wsl, je crois que non. Si besoin, j'imagine que vous trouverez votre bonheur ici: https://learn.microsoft.com/en-us/windows/wsl/tutorials/wsl-git
+
+
+Clone project
+```bash
+git clone https://github.com/JulienPriam/IVP_mildew_classification.git
+```
+
+## Open project in VSCode from WSL
+
 To open VSCode from WSL, the WSL extension is needed in VSCode. To install it, go to Extensions on the left in VSCode (or `CTRL+Shift+X`), search for WSL and install Extension.
 
 Then to open the project in VSCode, go to the project directory in the WSL prompt and run
@@ -56,32 +63,53 @@ Btw quelques extensions pratiques à installer dans VSCode :
 
 Pour ouvrir la preview quand on est sur un fichier markdown : `CTRL+k puis v`
 
-### Packages installation
+## Packages installation
 
-Perso j'ai utilisé un environnement conda parce que c'est pratique, vous pouvez utiliser un virtual env avec pip si vous préférer, mais je sais pas comment on fait. Du coup je vous donne le tuto pour Conda.
+Perso j'ai utilisé un virtual env avec pip, vous faites comme vous préférez.
 
-##### Install Conda
+##### Install python and pip
 
-If you use Debian, this prerequisite is needed:
-
+To install python
 ```bash
-apt-get install libgl1-mesa-glx libegl1-mesa libxrandr2 libxrandr2 libxss1 libxcursor1 libxcomposite1 libasound2 libxi6 libxtst6
+sudo apt-get install python3
+sudo apt-get install python3-venv
 ```
-
-If you use Ubuntu, nothing needed as prerequisites (Si WSL, c'est Ubuntu)
-
-Install Anaconda
-```bash
-wget https://repo.continuum.io/archive/Anaconda3-2022.10-Linux-x86_64.sh
-bash Anaconda3-2022.10-Linux-x86_64.sh
-conda update -n base -c defaults conda
-```
-Close and reopen terminal
 
 ##### Install needed packages
 
-First create a conda environment
+Create a virtual environment in your project
+
 ```bash
-conda create -n IVP
+python3 -m venv IVP_env
+```
+Please prenez le même nom que moi
+
+Activate it
+
+```bash
+source venv_name/bin/activate
+```
+Install packages needed by running
+```bash
+pip install opencv-python-headless numpy matplotlib
 ```
 
+##### Select interpreter in VSCode
+
+`CTRL+Shift+P` then search for `Python: Select Interpreter` in the prompt. Choose `./IVP_env/bin/python`.
+
+## Download dataset
+
+In `/home/your_name/IVP_mildew_classification`, create a folder `potato_dataset`.
+
+Download the dataset from this link
+https://www.kaggle.com/datasets/arjuntejaswi/plant-village?resource=download
+Extract the dataset from the downloaded zip. Rename the three folers containing potato leaves
+
+Potato___Early_blight --> early_blight
+Potato___Late_blight --> early_blight
+Potato___healthy --> healthy
+
+Then copy these three folders. Dans la barre d'exploration, taper `\\wsl$`, puis chercher le folder du projet, et coller les 3 folders dans le folder `potato_dataset`
+
+Then you can run the code !
