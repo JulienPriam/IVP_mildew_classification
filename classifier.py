@@ -7,16 +7,17 @@ from keras.saving.legacy.model_config import model_from_json
 from keras.wrappers.scikit_learn import KerasClassifier
 from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV
 
-from visualization import visualize_nn
+# from visualization import visualize_nn
 
 # SCRIPT PARAMETERS ____________________________________________________________________________________________________
 run_param_optimization = False  # perform RandomSearchCV
 run_NN = True  # train and test the neural network
-plot_network = True  # plot a view of the NN (not advised if RandomSearchCV performing)
+plot_network = False  # plot a view of the NN (not advised if RandomSearchCV performing)
 save_model = False  # save the model structure and parameters on the disk
 load_model = False  # load model from disk and evaluate it on testing set
 
 # hyperparameters tuning
+n_features = 768
 layer1_neurons = 15 # best 30
 layer2_neurons = 12 # best 25
 batch_size = 32 # best 128
@@ -66,7 +67,6 @@ def R2(y, y_hat):
 
 # BUILD MODEL __________________________________________________________________________________________________________
 def build_classifier(layer1_neurons, layer2_neurons, learning_rate):
-    n_features = 30
     inputs = layers.Input(name="input", shape=(n_features,))  # hidden layer 1
     h1 = layers.Dense(name="h1", units=layer1_neurons, activation='relu')(inputs)
     # h1 = layers.Dropout(name="drop1", rate=0.2)(h1)  # hidden layer 2
@@ -77,9 +77,10 @@ def build_classifier(layer1_neurons, layer2_neurons, learning_rate):
     model = models.Model(inputs=inputs, outputs=outputs, name="DeepNN")
     model.summary()
 
+    """
     if plot_network:
         visualize_nn(model, description=True, figsize=(10, 8))
-
+    """
 
     model.compile(optimizer=optimizer, loss='binary_crossentropy',
                   metrics=['accuracy', F1])
@@ -91,17 +92,11 @@ def build_classifier(layer1_neurons, layer2_neurons, learning_rate):
 
 # PREPARE THE DATASET __________________________________________________________________________________________________
 # df = pd.read_csv('CIC_features_binary.csv').iloc[300000:500000]
-df = pd.read_csv('dataset_bin.csv') #.iloc[0:300000]
+df = pd.read_csv('dataset.csv') #.iloc[0:300000]
 print(df['label'].value_counts())
 
 # REMOVE SOME FEATURES ___________________________
 df.drop('Unnamed: 0', axis=1, inplace=True)
-df.drop('t_start', axis=1, inplace=True)
-df.drop('t_end', axis=1, inplace=True)
-df.drop('ip_src', axis=1, inplace=True)
-df.drop('ip_dst', axis=1, inplace=True)
-df.drop('prt_src', axis=1, inplace=True)
-df.drop('prt_dst', axis=1, inplace=True)
 
 X = df.iloc[:, 0:-1]
 Y = df['label']  # Labels
@@ -109,16 +104,10 @@ Y = df['label']  # Labels
 X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2)
 print("Dataset has been split")
 
-under = RandomUnderSampler(sampling_strategy=1)
-X_smote_train, y_smote_train = under.fit_resample(X_train, y_train)
-X_smote_test, y_smote_test = under.fit_resample(X_test, y_test)
-print('\nRandomUnderSampler performed')
-print(y_smote_train.value_counts())
-
-X_train = X_smote_train.values
-y_train = y_smote_train.values
-X_test = X_smote_test.values
-y_test = y_smote_test.values
+X_train = X_train.values
+y_train = y_train.values
+X_test = X_test.values
+y_test = y_test.values
 # ______________________________________________________________________________________________________________________
 
 
