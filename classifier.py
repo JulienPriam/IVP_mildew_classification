@@ -17,7 +17,7 @@ save_model = False  # save the model structure and parameters on the disk
 load_model = False  # load model from disk and evaluate it on testing set
 
 # hyperparameters tuning
-n_features = 768
+n_features = 10
 layer1_neurons = 15 # best 30
 layer2_neurons = 12 # best 25
 batch_size = 32 # best 128
@@ -91,8 +91,7 @@ def build_classifier(layer1_neurons, layer2_neurons, learning_rate):
 
 
 # PREPARE THE DATASET __________________________________________________________________________________________________
-# df = pd.read_csv('CIC_features_binary.csv').iloc[300000:500000]
-df = pd.read_csv('dataset.csv') #.iloc[0:300000]
+df = pd.read_csv('dataset_histo.csv')
 print(df['label'].value_counts())
 
 # REMOVE SOME FEATURES ___________________________

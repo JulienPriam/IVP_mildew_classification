@@ -13,9 +13,27 @@ from keras.wrappers.scikit_learn import KerasClassifier
 from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV
 from keras import models, layers, utils, backend as K
 from keras.preprocessing.image import ImageDataGenerator
+from keras.models import Sequential
+from keras.layers import Conv2D, MaxPooling2D
+from keras.layers import Activation, Dropout, Flatten, Dense
+
+# SCRIPT PARAMETERS ____________________________________________________________________________________________________
+run_CNN = False
+save_model = False
+load_model = True
+
+# hyperparameters tuning
+n_features = 10
+layer1_neurons = 15 # best 30
+layer2_neurons = 12 # best 25
+batch_size = 32 # best 128
+epochs = 50
+learning_rate = 0.0001
+optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
+# ______________________________________________________________________________________________________________________
 
 
-
+# DATA PREPARATION _____________________________________________________________________________________________________
 train_healthy_dir = os.path.join('potato_dataset/train/healthy')
 train_blight_dir = os.path.join('potato_dataset/train/blight')
 val_healthy_dir = os.path.join('potato_dataset/val/healthy')
@@ -81,70 +99,91 @@ validation_generator = validation_datagen.flow_from_directory(
         # Use binary labels
         class_mode='binary',
         shuffle=False)
+# ______________________________________________________________________________________________________________________
 
 
-model = models.Sequential([layers.Flatten(input_shape = (200,200,3)), 
-                                    layers.Dense(128, activation='relu'), 
-                                    layers.Dense(1, activation='sigmoid')])
+# RUN THE CNN __________________________________________________________________________________________________________
+if run_CNN:
+      model = Sequential()
+      model.add(Conv2D(32, (3, 3), input_shape=(200, 200, 3)))
+      model.add(Activation('relu'))
+      model.add(MaxPooling2D(pool_size=(2, 2)))
 
-model.summary()
+      model.add(Conv2D(32, (3, 3)))
+      model.add(Activation('relu'))
+      model.add(MaxPooling2D(pool_size=(2, 2)))
 
-optimizer = keras.optimizers.Adam()
-model.compile(optimizer = optimizer,
-              loss = 'binary_crossentropy',
-              metrics=['accuracy'])
+      model.add(Conv2D(64, (3, 3)))
+      model.add(Activation('relu'))
+      model.add(MaxPooling2D(pool_size=(2, 2)))
 
-history = model.fit(train_generator,
-      epochs=30,
-      verbose=1,
-      validation_data = validation_generator,
-      validation_steps=8)
+      model.add(Flatten())  # this converts our 3D feature maps to 1D feature vectors
+      model.add(Dense(64))
+      model.add(Activation('relu'))
+      model.add(Dropout(0.5))
+      model.add(Dense(1))
+      model.add(Activation('sigmoid'))
 
-model.evaluate(validation_generator)
+      model.compile(loss='binary_crossentropy',
+                  optimizer=optimizer,
+                  metrics=['accuracy'])
 
-STEP_SIZE_TEST=validation_generator.n//validation_generator.batch_size
-validation_generator.reset()
-preds = model.predict(validation_generator,
-                      verbose=1)
+      training = model.fit(train_generator, epochs=epochs, validation_data = validation_generator)
 
-print(preds)
 
-"""
-model = models.Sequential([
-    # Note the input shape is the desired size of the image 200x200 with 3 bytes color
-    # This is the first convolution
-    layers.Conv2D(16, (3,3), activation='relu', input_shape=(200, 200, 3)),
-    layers.MaxPooling2D(2, 2),
-    # The second convolution
-    layers.Conv2D(32, (3,3), activation='relu'),
-    layers.MaxPooling2D(2,2),
-    # The third convolution
-    layers.Conv2D(64, (3,3), activation='relu'),
-    layers.MaxPooling2D(2,2),
-    # The fourth convolution
-    layers.Conv2D(64, (3,3), activation='relu'),
-    layers.MaxPooling2D(2,2),
-    # # The fifth convolution
-    layers.Conv2D(64, (3,3), activation='relu'),
-    layers.MaxPooling2D(2,2),
-    # Flatten the results to feed into a DNN
-    layers.Flatten(),
-    # 512 neuron hidden layer
-    layers.Dense(512, activation='relu'),
-    # Only 1 output neuron. It will contain a value from 0-1 where 0 for 1 class ('dandelions') and 1 for the other ('grass')
-    layers.Dense(1, activation='sigmoid')])
+      # PLOT THE TRAINING HISTORY 
+      metrics = [k for k in training.history.keys() if ("loss" not in k) and ("val" not in k)]
+      fig, ax = plt.subplots(nrows=1, ncols=2, sharey=True, figsize=(15, 3))
 
-model.summary()
+      # Training
+      ax[0].set(title="Training")
+      ax[0].set_ylim(0, 2)
+      ax11 = ax[0].twinx()
+      ax[0].plot(training.history['loss'], color='black')
+      ax[0].set_xlabel('Epochs')
+      ax[0].set_ylabel('Loss', color='black')
+      for metric in metrics:
+            ax11.plot(training.history[metric], label=metric)
+            ax11.set_ylabel("Score", color='steelblue')
+      ax11.legend()
 
-optimizer = keras.optimizers.Adam()
-model.compile(optimizer = optimizer,
-              loss = 'binary_crossentropy',
-              metrics=['accuracy'])
+      # Validation
+      ax[1].set(title="Validation")
+      ax22 = ax[1].twinx()
+      ax[1].plot(training.history['val_loss'], color='black')
+      ax[1].set_xlabel('Epochs')
+      ax[1].set_ylabel('Loss', color='black')
+      for metric in metrics:
+            ax22.plot(training.history['val_' + metric], label=metric)
+            ax22.set_ylabel("Score", color="steelblue")
+      plt.show()
+# ______________________________________________________________________________________________________________________
 
-history = model.fit(train_generator,
-      steps_per_epoch=8,  
-      epochs=15,
-      verbose=1,
-      validation_data = validation_generator,
-      validation_steps=8)
-"""
+
+# SAVE THE MODEL _______________________________________________________________________________________________________
+if save_model & run_CNN:
+    # serialize model to JSON
+    model_json = model.to_json()
+    with open("model_CNN.json", "w") as json_file:
+        json_file.write(model_json)
+    # serialize weights to HDF5
+    model.save_weights("model_CNN.h5")
+    print("\nSaved model to disk")     
+# ______________________________________________________________________________________________________________________
+
+# LOAD MODEL FROM DISK AND EVALUATE ON TESTING SET _____________________________________________________________________
+if load_model:
+    # load json and create model
+    json_file = open('model_CNN.json', 'r')
+    loaded_model_json = json_file.read()
+    json_file.close()
+    loaded_model = model_from_json(loaded_model_json)
+    # load weights into new model
+    loaded_model.load_weights("model_CNN.h5")
+    print("\nLoaded model from disk")
+
+    # evaluate loaded model on test data
+    loaded_model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
+    score = loaded_model.evaluate(validation_generator, verbose=0)
+    print("{}: {}%".format(loaded_model.metrics_names[1], score[1] * 100))
+# ______________________________________________________________________________________________________________________
