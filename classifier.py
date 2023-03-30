@@ -12,26 +12,26 @@ from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSe
 # SCRIPT PARAMETERS ____________________________________________________________________________________________________
 run_param_optimization = False  # perform RandomSearchCV
 run_NN = True  # train and test the neural network
-plot_network = False  # plot a view of the NN (not advised if RandomSearchCV performing)
+plot_network = True  # plot a view of the NN (not advised if RandomSearchCV performing)
 save_model = False  # save the model structure and parameters on the disk
 load_model = False  # load model from disk and evaluate it on testing set
 
 # hyperparameters tuning
-n_features = 10
-layer1_neurons = 15 # best 30
-layer2_neurons = 12 # best 25
-batch_size = 32 # best 128
+n_features = 23
+layer1_neurons = 60 # best 30
+layer2_neurons = 30 # best 25
+batch_size = 64 # best 128
 epochs = 50
-learning_rate = 0.001
+learning_rate = 0.0001
 optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
 
 # for randomizedSearchCV
-parameters = {'batch_size': [128],
+parameters = {'batch_size': [16, 32, 64],
               'nb_epoch': [100],
-              'learning_rate': [0.001, 0.005, 0.01, 0.05, 0.1],
-              'layer1_neurons': [5, 10, 15, 20, 25, 30],
-              'layer2_neurons': [5, 10, 15, 20, 25, 30]}
-n_iter = 100
+              'learning_rate': [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1],
+              'layer1_neurons': [5, 10, 15, 20, 25, 30, 35, 40, 50],
+              'layer2_neurons': [5, 10, 15, 20, 25, 30, 35, 40, 50]}
+n_iter = 200
 # ______________________________________________________________________________________________________________________
 
 
@@ -69,9 +69,9 @@ def R2(y, y_hat):
 def build_classifier(layer1_neurons, layer2_neurons, learning_rate):
     inputs = layers.Input(name="input", shape=(n_features,))  # hidden layer 1
     h1 = layers.Dense(name="h1", units=layer1_neurons, activation='relu')(inputs)
-    # h1 = layers.Dropout(name="drop1", rate=0.2)(h1)  # hidden layer 2
+    h1 = layers.Dropout(name="drop1", rate=0.05)(h1)  # hidden layer 2
     h2 = layers.Dense(name="h2", units=layer2_neurons, activation='relu')(h1)
-    # h2 = layers.Dropout(name="drop2", rate=0.2)(h2)  ### layer output
+    h2 = layers.Dropout(name="drop2", rate=0.05)(h2)  ### layer output
     outputs = layers.Dense(name="output", units=1, activation='sigmoid')(h2)
 
     model = models.Model(inputs=inputs, outputs=outputs, name="DeepNN")
@@ -83,7 +83,7 @@ def build_classifier(layer1_neurons, layer2_neurons, learning_rate):
     """
 
     model.compile(optimizer=optimizer, loss='binary_crossentropy',
-                  metrics=['accuracy', F1])
+                  metrics=['accuracy'])
     return model
 
 
@@ -91,7 +91,7 @@ def build_classifier(layer1_neurons, layer2_neurons, learning_rate):
 
 
 # PREPARE THE DATASET __________________________________________________________________________________________________
-df = pd.read_csv('dataset_histo.csv')
+df = pd.read_csv('dataset.csv')
 print(df['label'].value_counts())
 
 # REMOVE SOME FEATURES ___________________________
@@ -100,7 +100,7 @@ df.drop('Unnamed: 0', axis=1, inplace=True)
 X = df.iloc[:, 0:-1]
 Y = df['label']  # Labels
 
-X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2)
+X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=0)
 print("Dataset has been split")
 
 X_train = X_train.values
@@ -157,7 +157,6 @@ if run_NN:
 
     # Training
     ax[0].set(title="Training")
-    ax[0].set_ylim(0, 2)
     ax11 = ax[0].twinx()
     ax[0].plot(training.history['loss'], color='black')
     ax[0].set_xlabel('Epochs')

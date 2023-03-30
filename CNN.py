@@ -17,6 +17,8 @@ from keras.models import Sequential
 from keras.layers import Conv2D, MaxPooling2D
 from keras.layers import Activation, Dropout, Flatten, Dense
 
+import skimage
+
 # SCRIPT PARAMETERS ____________________________________________________________________________________________________
 run_CNN = False
 save_model = False
@@ -27,8 +29,8 @@ n_features = 10
 layer1_neurons = 15 # best 30
 layer2_neurons = 12 # best 25
 batch_size = 32 # best 128
-epochs = 50
-learning_rate = 0.0001
+epochs = 25
+learning_rate = 0.001
 optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
 # ______________________________________________________________________________________________________________________
 
@@ -85,7 +87,7 @@ validation_datagen = ImageDataGenerator(rescale=1/255)
 train_generator = train_datagen.flow_from_directory(
         'potato_dataset/train',  # This is the source directory for training images
         classes = ['healthy', 'blight'],
-        target_size=(200, 200),  # All images will be resized to 200x200
+        target_size=(256, 256),  # All images will be resized to 200x200
         batch_size=120,
         # Use binary labels
         class_mode='binary')
@@ -94,7 +96,7 @@ train_generator = train_datagen.flow_from_directory(
 validation_generator = validation_datagen.flow_from_directory(
         'potato_dataset/val',  # This is the source directory for training images
         classes = ['healthy', 'blight'],
-        target_size=(200, 200),  # All images will be resized to 200x200
+        target_size=(256, 256),  # All images will be resized to 200x200
         batch_size=19,
         # Use binary labels
         class_mode='binary',
@@ -105,7 +107,7 @@ validation_generator = validation_datagen.flow_from_directory(
 # RUN THE CNN __________________________________________________________________________________________________________
 if run_CNN:
       model = Sequential()
-      model.add(Conv2D(32, (3, 3), input_shape=(200, 200, 3)))
+      model.add(Conv2D(32, (3, 3), input_shape=(256, 256, 3)))
       model.add(Activation('relu'))
       model.add(MaxPooling2D(pool_size=(2, 2)))
 
@@ -181,6 +183,17 @@ if load_model:
     # load weights into new model
     loaded_model.load_weights("model_CNN.h5")
     print("\nLoaded model from disk")
+
+    # Flow validation images in batches of 19 using valid_datagen generator
+    validation_generator = validation_datagen.flow_from_directory(
+        'test_data',  # This is the source directory for training images
+        classes = ['healthy', 'blight'],
+        target_size=(256, 256),  # All images will be resized to 200x200
+        batch_size=19,
+        # Use binary labels
+        class_mode='binary',
+        shuffle=False)
+    
 
     # evaluate loaded model on test data
     loaded_model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
